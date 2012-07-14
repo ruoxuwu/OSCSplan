@@ -79,6 +79,29 @@ luamenghuo = sgs.General(extension, "luamenghuo", "shu", 4)
 luamenghuo:addSkill(luahuoshou)
 luamenghuo:addSkill(luazaiqi)
 
+-- 完杀by佚名
+LUAWanSha=sgs.CreateTriggerSkill{
+	name="LUAWanSha",
+	events=sgs.AskForPeaches,
+	frequency=sgs.Skill_Compulsory,
+	on_trigger=function(self,event,player,data)
+		local room=player:getRoom()
+		local current=room:getCurrent()
+		if current:isAlive() and current:hasSkill("LUAWanSha") then
+			local dying=data:toDying()
+			local who=dying.who
+			return not (player:getSeat()==current:getSeat() or player:getSeat()==who:getSeat())
+		end
+	end,
+	can_trigger=function(self,player)
+		return player and player:isAlive()
+	end,
+}
+
+LUAJiaXu=sgs.General(extension,"LUAJiaXu","qun","3",true)
+LUAJiaXu:addSkill(LUAWanSha)
+
+
 sgs.LoadTranslationTable{
 	["#luacaopi"] = "0214",
 	["#luaxuhuang"] = "0210",
