@@ -64,7 +64,7 @@ luasp_guanyu:addSkill(luadanqi)
 sgs.LoadTranslationTable{
 	["#luasp-guanyu"] = "0806",
 }
--- ☆SP赵云、☆SP貂蝉 by佚名
+-- ☆SP赵云、☆SP貂蝉 by阴酆主人
 luaNewSpZhaoyun=sgs.General(extension, "luaNewSpZhaoyun", "qun","3",true)
 luaNewSpDiaochan=sgs.General(extension, "luaNewSpDiaochan", "qun","3",false)
 
@@ -604,7 +604,7 @@ pangtongsp:addSkill(zuixiang)
 	["#zuixiangthrow"] = "%from 的技能 【<font color='yellow'><b>漫卷</b></font>】 被触发，将这张 %arg 置于弃牌堆",
 } 	]]
 
--- ☆sp张飞 by佚名
+-- ☆sp张飞 by寒秋
 luaspzf = sgs.General(extension, "luaspzf", "shu", 4, true,false)
 luajie = sgs.CreateTriggerSkill
 {

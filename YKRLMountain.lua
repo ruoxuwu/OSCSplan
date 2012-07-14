@@ -121,6 +121,92 @@ luaruoyu=sgs.CreateTriggerSkill{--若愚by卍冰の羽卍
     end
 }
 
+--固政 by [争据] Ellis 
+Guzhenglist = {}
+Guzheng_trs=sgs.CreateTriggerSkill{
+        name="guzheng_trs",
+        events={sgs.CardLost, sgs.PhaseChange},
+        priority=-1,
+        
+        can_trigger=function()
+                  return true
+        end,
+        
+        on_trigger=function(self,event,player,data)
+                local room = player:getRoom()
+                local erzhang = room:findPlayerBySkillName(self:objectName())
+                if erzhang == nil then return end
+                
+                if event == sgs.CardLost then
+                        local current = room:getCurrent();
+                        
+                        if erzhang:objectName() == current:objectName() then return end
+                        
+                        if current:getPhase() == sgs.Player_Discard then
+                                local move = data:toCardMove()
+                                table.insert(Guzhenglist, move.card_id)
+                        end
+                else
+                        if player:hasSkill(self:objectName()) then return end
+                        if player:isDead() then return end
+
+                        local cards = sgs.IntList()
+                        for _,id in ipairs(Guzhenglist) do
+                                if room:getCardPlace(id) == sgs.Player_DiscardedPile then
+                                        cards:append(id)
+                                end
+                        end
+                        table.remove(Guzhenglist)
+
+                        if cards:isEmpty() then return end
+
+                        if room:askForSkillInvoke(erzhang, self:objectName()) then
+                                room:fillAG(cards, erzhang)
+
+                                local to_back = room:askForAG(erzhang, cards, false, self:objectName())
+                                player:obtainCard(sgs.Sanguosha:getCard(to_back))
+
+                                cards:removeOne(to_back)
+
+                                erzhang:invoke("clearAG")
+
+                                for _,id in sgs.qlist(cards) do
+                                        erzhang:obtainCard(sgs.Sanguosha:getCard(id))
+                                end
+                        end
+                end
+        end,
+}
+
+--魂姿 by 卍冰の羽卍
+luahunzi = sgs.CreateTriggerSkill{
+        frequency = sgs.Skill_Wake,
+        name = "luahunzi",
+        events = sgs.TurnStart,        
+        on_trigger = function(self,event,player,data)
+                if (not player:faceUp()) then return false end
+        local room = player:getRoom()
+                local x = player:getHp()
+                local m = {}
+                for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                        table.insert(m,p:getHp())
+                end
+                if x > 1 then m=nil return false end
+                local log = sgs.LogMessage()
+                log.from = player
+                log.type = "#luahunzi"
+                room:sendLog(log)
+        room:acquireSkill(player,"yingzi")
+        room:acquireSkill(player,"yinghun")
+        room:loseMaxHp(player)
+        player:addMark("lua_hunzi")
+        return false
+    end,
+        can_trigger=function(self,player)
+        return player:hasSkill(self:objectName()) and (player:getMark("lua_hunzi")==0)
+    end
+}
+
 sgs.LoadTranslationTable{
 	["#zhanghe"] = "0209",
 	["#dengai"] = "0215",
