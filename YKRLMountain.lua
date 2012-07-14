@@ -94,6 +94,33 @@ luajiangwei = sgs.General(extension, "luajiangwei", "shu", 4)
 luajaingwei:addSkill(luatiaoxin)
 luajiangwei:addSkill(luazhiji)
 
+--刘禅
+luaruoyu=sgs.CreateTriggerSkill{--若愚by卍冰の羽卍
+        name="luaruoyu$",
+        events=sgs.TurnStart,                
+        on_trigger=function(self,event,player,data)
+        local room=player:getRoom()
+        if  player:hasFlag("luaruoyu_waked")then return false end
+        local x=player:getHp()
+        local m={} 
+        for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                        table.insert(m,p:getHp())                        
+        end
+        if x>math.min(unpack(m)) then m=nil return end
+        local log=sgs.LogMessage()
+        log.from =player
+        log.type ="#luaruoyu"
+        room:sendLog(log)
+        room:setPlayerFlag(player,"luaruoyu_waked")
+        local recover=sgs.RecoverStruct()
+        recover.who=player
+        recover.recover=1
+        room:recover(player,recover)
+        room:setPlayerProperty(player,"maxhp",sgs.QVariant(player:getMaxHP()+1))        
+        room:attachSkillToPlayer(player,"jijiang")
+    end
+}
+
 sgs.LoadTranslationTable{
 	["#zhanghe"] = "0209",
 	["#dengai"] = "0215",
