@@ -1,3 +1,5 @@
+--桌游志SP包
+--现包含：SP关羽、、☆SP赵云、☆SP貂蝉、☆SP曹仁、☆SP庞统、☆SP张飞、☆SP刘备、☆SP大乔、☆SP吕蒙
 module("extensions.BGSP", package.seeall)
 
 extension = sgs.Package("BGSP")
@@ -602,7 +604,7 @@ pangtongsp:addSkill(zuixiang)
 	["#zuixiangthrow"] = "%from 的技能 【<font color='yellow'><b>漫卷</b></font>】 被触发，将这张 %arg 置于弃牌堆",
 } 	]]
 
--- sp张飞 by佚名
+-- ☆sp张飞 by佚名
 luaspzf = sgs.General(extension, "luaspzf", "shu", 4, true,false)
 luajie = sgs.CreateTriggerSkill
 {
@@ -933,7 +935,7 @@ sgs.LoadTranslationTable{
 	["@sbshichou"]="是否发动技能【誓仇】",
 	["#shichoutrans"]="%from 的技能【誓仇】的后续效果被触发，%to 替 %from 承受 %arg 点伤害"
 }
---☆SP貂蝉 by Slob
+--☆SP大乔 by Slob
 sbdaqiao=sgs.General(extension, "sbdaqiao", "wu", 3, false) 
 
 sbyanxiaocard=sgs.CreateSkillCard{
@@ -1073,4 +1075,182 @@ sgs.LoadTranslationTable{
 	[":sbanxian"]="每当你使用【杀】对目标角色造成伤害时，你可以防止此次伤害，令其弃置一张手牌，让后你摸一张牌；当你成为【杀】的目标时，你可以弃置一张手牌使之无效，然后该【杀】的使用者摸一张牌。",
 }		
      
+--☆SP吕蒙 by 切西瓜的RZ
+splvmeng = sgs.General(extension,"splvmeng", "wu", 3)
 
+
+tanhucard=sgs.CreateSkillCard{ --吞狼技能卡
+name="tanhu",
+will_throw = false,
+filter=function(self,targets,to_select,player)
+if (#targets>=1) then return false end
+return not to_select:isKongcheng()
+end,
+on_effect=function(self,effect)          
+     local room=effect.from:getRoom()                
+         local tiger =effect.to                --老虎
+     room:playSkillEffect("xianzhen",1)
+     if (effect.from:pindian(tiger,"tanhu",self)) then --拼点成功则
+                 room:playSkillEffect("xianzhen",2)       
+         room:setPlayerFlag(effect.to,"tanhutarget")                 
+                  room:setPlayerFlag(effect.from,"tanhu_success")                 
+else                   room:setPlayerFlag(effect.from,"tanhu_failed")                 
+        end                
+end,
+}
+
+tanhuvs=sgs.CreateViewAsSkill{ --吞狼视为
+name="tanhuvs",
+n=1,
+view_filter=function(self, selected, to_select)
+        return not to_select:isEquipped()
+end,
+view_as=function(self, cards)
+        if #cards==1 then 
+        local acard=tanhucard:clone()
+        acard:addSubcard(cards[1])                
+        acard:setSkillName("tanhu")
+        return acard end
+end,
+enabled_at_play=function()   
+return not sgs.Self:hasFlag("tanhu_success") and not sgs.Self:hasFlag("tanhu_failed")
+end,
+enabled_at_response=function(self,player,pattern) 
+        return false 
+end
+}
+
+
+
+tanhu=sgs.CreateTriggerSkill{
+        name="tanhu",
+        events={sgs.CardEffect,sgs.PhaseChange},
+        view_as_skill=tanhuvs,
+        priority=0,
+        
+        on_trigger=function(self,event,player,data)
+                local room=player:getRoom()
+                 if event==sgs.CardEffect then 
+
+                local effect=data:toCardEffect()
+                local card=effect.card--获取卡片
+                if not card:inherits("TrickCard") then return false end--是否非延时锦囊
+                if effect.from:hasFlag("tanhu_success") and effect.to:hasFlag("tanhutarget") then
+                        for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                    room:attachSkillToPlayer(p,"kuanhp")
+         end
+                         elseif (not effect.from:hasFlag("tanhu_success")) or (not effect.to:hasFlag("tanhutarget")) then
+                        for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                    room:detachSkillFromPlayer(p,"kuanhp")
+         end end
+                 elseif event==sgs.PhaseChange then 
+                 if player:getPhase() == sgs.Player_Finish then 
+
+                        for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                    room:detachSkillFromPlayer(p,"kuanhp")
+        end end end
+end,
+}
+
+tanhudis=sgs.CreateDistanceSkill{
+name= "#tanhudis",
+correct_func=function(self,from,to)
+        if from:hasFlag("tanhu_success") and  to:hasFlag("tanhutarget")
+        then return -99
+        else return 0
+        end
+end
+}
+
+kuanhp=sgs.CreateFilterSkill{
+name="kuanhp",
+view_filter=function(self,to_select)
+return to_select:inherits("Nullification")
+end,
+view_as=function(self,card)
+local filtered=sgs.Sanguosha:cloneCard("shit", card:getSuit(), card:getNumber()) 
+
+filtered:addSubcard(card)
+filtered:setSkillName(self:objectName())
+return filtered
+end
+}
+
+local skill=sgs.Sanguosha:getSkill("kuanhp")
+if not skill then
+        local skillList=sgs.SkillList()
+        skillList:append(kuanhp)
+        sgs.Sanguosha:addSkills(skillList)
+end
+
+mouduan=sgs.CreateTriggerSkill{
+name="mouduan",
+events={sgs.GameStart,sgs.TurnStart},
+on_trigger=function(self,event,player,data)
+local room=player:getRoom()
+local selfplayer=room:findPlayerBySkillName(self:objectName())
+local otherplayers=room:getOtherPlayers(selfplayer)
+if event==sgs.GameStart then 
+if player:hasSkill("mouduan") then
+room:acquireSkill(selfplayer,"jiang")
+room:acquireSkill(selfplayer,"qianxun")
+  player:gainMark("@wu",1)
+  end
+elseif event==sgs.TurnStart then 
+if not player:hasSkill("jiang") then return false end
+if room:askForSkillInvoke(selfplayer,"mouduan") then 
+if(room:askForDiscard(selfplayer,self:objectName(),1,false,false)) then if selfplayer:hasSkill("jiang") then 
+room:acquireSkill(selfplayer,"yingzi")
+room:acquireSkill(selfplayer,"keji")
+room:detachSkillFromPlayer(selfplayer,"jiang")
+room:detachSkillFromPlayer(selfplayer,"qianxun") 
+selfplayer:gainMark("@wen")
+selfplayer:loseMark("@wu")
+elseif not selfplayer:hasSkill("jiang") then
+room:acquireSkill(selfplayer,"jiang")
+room:acquireSkill(selfplayer,"qianxun")
+room:detachSkillFromPlayer(selfplayer,"yingzi")
+room:detachSkillFromPlayer(selfplayer,"keji")
+selfplayer:gainMark("@wu")
+selfplayer:loseMark("@wen")
+end
+end
+end
+
+if selfplayer:getHandcardNum()<3 then
+room:acquireSkill(selfplayer,"yingzi")
+room:acquireSkill(selfplayer,"keji")
+room:detachSkillFromPlayer(selfplayer,"jiang")
+room:detachSkillFromPlayer(selfplayer,"qianxun")
+selfplayer:gainMark("@wen")
+selfplayer:loseMark("@wu")
+end
+end
+end,
+can_trigger=function(self,player)
+local room=player:getRoom()
+local selfplayer=room:findPlayerBySkillName(self:objectName())
+if selfplayer==nil then return false end
+return selfplayer:isAlive()
+
+end,
+}
+
+
+splvmeng:addSkill(mouduan)
+splvmeng:addSkill(tanhu)
+splvmeng:addSkill(tanhudis)
+
+
+
+sgs.LoadTranslationTable{
+        ["splvmeng"]="SP吕蒙",
+[":mouduan"]="<b>转化技</b>，通常状态下，你拥有标记“武”并拥有技能“激昂”和“谦逊”。当你的手牌数为2张或以下时，你须将你的标记翻面为“文”，将该两项技能转化为“英姿”和“克己”。任一角色的回合开始前，你可弃一张牌将标记翻回。",
+["mouduan"]="谋断",
+["tanhu"]="探虎",
+[":tanhu"]="出牌阶段，你可以与一名角色拼点，若你赢，你获得以下技能直到回合结束：无视与该角色的距离,对该角色使用的锦囊不可被【无懈可击】。每阶段限一次。 ",
+["#splvmeng"]="国士之风",
+        ["designer:splvmeng"] = "桌游志",
+        ["illustrator:splvmeng"] = "暂无",
+        ["cv:splvmeng"] = "暂无",        
+} 
